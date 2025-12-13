@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AppProvider, useApp } from '@/contexts/AppContext';
+import { GoogleMapsProvider } from '@/contexts/GoogleMapsContext';
 import { Header } from '@/components/Header';
 import { Navigation } from '@/components/Navigation';
 import { EmergencyOverlay } from '@/components/EmergencyOverlay';
@@ -9,6 +10,7 @@ import { TrustedContactDashboard } from '@/pages/TrustedContactDashboard';
 import { RemindersPage } from '@/pages/RemindersPage';
 import { LocationPage } from '@/pages/LocationPage';
 import { ContactsPage } from '@/pages/ContactsPage';
+import { SettingsPage } from '@/pages/SettingsPage';
 import { UserRole } from '@/types';
 
 const AppContent: React.FC = () => {
@@ -24,6 +26,15 @@ const AppContent: React.FC = () => {
     resolveEmergency
   } = useApp();
 
+  // Listen for navigation events (from settings button in location page)
+  useEffect(() => {
+    const handleNavigate = (event: CustomEvent) => {
+      setCurrentPage(event.detail);
+    };
+    window.addEventListener('navigate', handleNavigate as EventListener);
+    return () => window.removeEventListener('navigate', handleNavigate as EventListener);
+  }, []);
+
   const handleSelectRole = (role: UserRole) => {
     setCurrentRole(role);
     setShowWelcome(false);
@@ -38,6 +49,11 @@ const AppContent: React.FC = () => {
   }
 
   const renderPage = () => {
+    // Settings is available for both roles
+    if (currentPage === 'settings') {
+      return <SettingsPage />;
+    }
+
     if (currentRole === 'trusted_contact') {
       switch (currentPage) {
         case 'location':
@@ -96,9 +112,11 @@ const AppContent: React.FC = () => {
 
 const Index: React.FC = () => {
   return (
-    <AppProvider>
-      <AppContent />
-    </AppProvider>
+    <GoogleMapsProvider>
+      <AppProvider>
+        <AppContent />
+      </AppProvider>
+    </GoogleMapsProvider>
   );
 };
 

@@ -5,8 +5,7 @@ import {
   Bell, 
   MapPin, 
   Users, 
-  Settings,
-  Heart
+  Settings
 } from 'lucide-react';
 
 interface NavigationProps {
@@ -19,6 +18,7 @@ const navItems = [
   { id: 'reminders', label: 'Reminders', icon: Bell },
   { id: 'location', label: 'Location', icon: MapPin },
   { id: 'contacts', label: 'Contacts', icon: Users },
+  { id: 'settings', label: 'Settings', icon: Settings },
 ];
 
 export const Navigation: React.FC<NavigationProps> = ({
@@ -26,8 +26,8 @@ export const Navigation: React.FC<NavigationProps> = ({
   onNavigate,
 }) => {
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-lg border-t border-border z-50">
-      <div className="max-w-lg mx-auto px-4 py-2">
+    <nav className="fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-lg border-t border-border z-50 safe-area-bottom">
+      <div className="max-w-lg mx-auto px-2 py-2">
         <div className="flex items-center justify-around">
           {navItems.map((item) => {
             const Icon = item.icon;
@@ -38,17 +38,17 @@ export const Navigation: React.FC<NavigationProps> = ({
                 key={item.id}
                 onClick={() => onNavigate(item.id)}
                 className={cn(
-                  'flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-all duration-300 touch-target',
+                  'flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl transition-all duration-300',
                   isActive 
                     ? 'text-primary bg-primary/10' 
                     : 'text-muted-foreground hover:text-foreground'
                 )}
               >
                 <Icon className={cn(
-                  'w-6 h-6 transition-transform',
+                  'w-5 h-5 transition-transform',
                   isActive && 'scale-110'
                 )} />
-                <span className="text-xs font-medium">{item.label}</span>
+                <span className="text-[10px] font-medium">{item.label}</span>
               </button>
             );
           })}
