@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Reminder, ReminderType } from '@/types';
 
 // Mock initial reminders
@@ -11,7 +11,7 @@ const createInitialReminders = (): Reminder[] => {
       type: 'medicine',
       title: 'Prenatal Vitamins',
       description: 'Take your daily prenatal vitamins with breakfast',
-      scheduledTime: new Date(now.getTime() + 30 * 60000), // 30 min from now
+      scheduledTime: new Date(now.getTime() + 30 * 60000),
       isCompleted: false,
     },
     {
@@ -19,7 +19,7 @@ const createInitialReminders = (): Reminder[] => {
       type: 'water',
       title: 'Hydration Check',
       description: 'Drink a glass of water',
-      scheduledTime: new Date(now.getTime() + 60 * 60000), // 1 hour from now
+      scheduledTime: new Date(now.getTime() + 60 * 60000),
       isCompleted: false,
     },
     {
@@ -27,7 +27,7 @@ const createInitialReminders = (): Reminder[] => {
       type: 'food',
       title: 'Healthy Snack',
       description: 'Time for a nutritious snack',
-      scheduledTime: new Date(now.getTime() + 2 * 60 * 60000), // 2 hours from now
+      scheduledTime: new Date(now.getTime() + 2 * 60 * 60000),
       isCompleted: false,
     },
     {
@@ -35,7 +35,7 @@ const createInitialReminders = (): Reminder[] => {
       type: 'rest',
       title: 'Rest Break',
       description: 'Take a 15-minute rest break',
-      scheduledTime: new Date(now.getTime() + 3 * 60 * 60000), // 3 hours from now
+      scheduledTime: new Date(now.getTime() + 3 * 60 * 60000),
       isCompleted: false,
     },
     {
@@ -43,7 +43,7 @@ const createInitialReminders = (): Reminder[] => {
       type: 'exercise',
       title: 'Gentle Stretching',
       description: 'Do some light stretching exercises',
-      scheduledTime: new Date(now.getTime() + 4 * 60 * 60000), // 4 hours from now
+      scheduledTime: new Date(now.getTime() + 4 * 60 * 60000),
       isCompleted: false,
     },
   ];
@@ -93,8 +93,14 @@ export const useReminders = (options?: UseRemindersOptions) => {
       isCompleted: false,
     };
 
-    setReminders((prev) => [...prev, newReminder]);
+    setReminders((prev) => [...prev, newReminder].sort((a, b) => 
+      a.scheduledTime.getTime() - b.scheduledTime.getTime()
+    ));
     return newReminder;
+  }, []);
+
+  const deleteReminder = useCallback((reminderId: string) => {
+    setReminders((prev) => prev.filter((r) => r.id !== reminderId));
   }, []);
 
   const getUpcomingReminders = useCallback(() => {
@@ -107,6 +113,16 @@ export const useReminders = (options?: UseRemindersOptions) => {
   const getPastDueReminders = useCallback(() => {
     const now = new Date();
     return reminders.filter((r) => !r.isCompleted && r.scheduledTime <= now);
+  }, [reminders]);
+
+  const getCompletedToday = useCallback(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return reminders.filter((r) => 
+      r.isCompleted && 
+      r.completedAt && 
+      new Date(r.completedAt) >= today
+    );
   }, [reminders]);
 
   // Check for reminders that are due
@@ -122,8 +138,8 @@ export const useReminders = (options?: UseRemindersOptions) => {
       }
     };
 
-    const interval = setInterval(checkReminders, 30000); // Check every 30 seconds
-    checkReminders(); // Initial check
+    const interval = setInterval(checkReminders, 30000);
+    checkReminders();
 
     return () => clearInterval(interval);
   }, [reminders, activeReminder]);
@@ -133,7 +149,9 @@ export const useReminders = (options?: UseRemindersOptions) => {
     activeReminder,
     completeReminder,
     addReminder,
+    deleteReminder,
     getUpcomingReminders,
     getPastDueReminders,
+    getCompletedToday,
   };
 };
