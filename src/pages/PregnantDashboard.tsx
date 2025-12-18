@@ -12,6 +12,7 @@ import { HealthCheckCard } from '@/components/HealthCheckCard';
 import { QuickActionCard } from '@/components/QuickActionCard';
 import { ContactMiniCard } from '@/components/ContactMiniCard';
 import { RoleToggle } from '@/components/RoleToggle';
+import { DailyCheckinDialog } from '@/components/DailyCheckinDialog';
 import { useApp } from '@/contexts/AppContext';
 import { mockPregnantUser } from '@/data/mockData';
 import { 
@@ -44,6 +45,7 @@ export const PregnantDashboard: React.FC = () => {
     emergencyHistory,
   } = useApp();
 
+  const [checkinOpen, setCheckinOpen] = useState(false);
   const upcomingReminder = reminders.find((r) => !r.isCompleted);
   const primaryContacts = trustedContacts.slice(0, 2);
   const lastCheckIn = emergencyHistory.find(e => e.triggerType === 'voice' || e.triggerType === 'manual');
@@ -137,6 +139,7 @@ export const PregnantDashboard: React.FC = () => {
             icon={Pill}
             label="Log Health"
             variant="primary"
+            onClick={() => setCheckinOpen(true)}
           />
           <QuickActionCard 
             icon={AlertCircle}
@@ -219,6 +222,13 @@ export const PregnantDashboard: React.FC = () => {
           )}
         </Card>
       </div>
+
+      {/* Daily Checkin Dialog */}
+      <DailyCheckinDialog
+        open={checkinOpen}
+        onOpenChange={setCheckinOpen}
+        onComplete={(id) => console.log('Completed:', id)}
+      />
     </div>
   );
 };
