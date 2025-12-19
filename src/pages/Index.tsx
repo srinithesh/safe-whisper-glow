@@ -11,6 +11,7 @@ import { RemindersPage } from '@/pages/RemindersPage';
 import { LocationPage } from '@/pages/LocationPage';
 import { ContactsPage } from '@/pages/ContactsPage';
 import { SettingsPage } from '@/pages/SettingsPage';
+import { DigiLockerPage } from '@/components/DigiLocker';
 import { UserRole } from '@/types';
 
 const AppContent: React.FC = () => {
@@ -52,6 +53,11 @@ const AppContent: React.FC = () => {
     // Settings is available for both roles
     if (currentPage === 'settings') {
       return <SettingsPage />;
+    }
+
+    // DigiLocker available for pregnant woman
+    if (currentPage === 'digilocker') {
+      return <DigiLockerPage />;
     }
 
     if (currentRole === 'trusted_contact') {

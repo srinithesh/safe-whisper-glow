@@ -280,11 +280,72 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setNotificationSettings(prev => ({ ...prev, [key]: value }));
   }, []);
 
-  // DigiLocker state
-  const [digiLockerDocuments, setDigiLockerDocuments] = useState<DigiLockerDocument[]>([]);
-  const [digiLockerAccess, setDigiLockerAccess] = useState<DigiLockerAccess[]>([]);
-  const [emergencyAccessEnabled, setEmergencyAccessEnabled] = useState(false);
-  const [activityLog, setActivityLog] = useState<ActivityLogEntry[]>([]);
+  // DigiLocker state with sample data
+  const [digiLockerDocuments, setDigiLockerDocuments] = useState<DigiLockerDocument[]>([
+    {
+      id: 'doc-1',
+      type: 'government_id',
+      name: 'Aadhaar Card',
+      fileName: 'aadhaar_card.pdf',
+      fileSize: 245000,
+      uploadedAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+      accessLevel: 'emergency_only',
+    },
+    {
+      id: 'doc-2',
+      type: 'pregnancy_report',
+      name: 'Week 24 Checkup Report',
+      fileName: 'pregnancy_report_w24.pdf',
+      fileSize: 1250000,
+      uploadedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+      accessLevel: 'trusted_contacts',
+    },
+    {
+      id: 'doc-3',
+      type: 'blood_group',
+      name: 'Blood Group Certificate',
+      fileName: 'blood_group_B_positive.pdf',
+      fileSize: 125000,
+      uploadedAt: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000),
+      accessLevel: 'emergency_only',
+    },
+    {
+      id: 'doc-4',
+      type: 'insurance',
+      name: 'Health Insurance Policy',
+      fileName: 'insurance_policy_2024.pdf',
+      fileSize: 890000,
+      uploadedAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000),
+      accessLevel: 'trusted_contacts',
+    },
+  ]);
+  const [digiLockerAccess, setDigiLockerAccess] = useState<DigiLockerAccess[]>([
+    { userId: trustedContacts[0]?.id || 'contact-1', accessType: 'husband', canView: true, grantedAt: new Date() },
+  ]);
+  const [emergencyAccessEnabled, setEmergencyAccessEnabled] = useState(true);
+  const [activityLog, setActivityLog] = useState<ActivityLogEntry[]>([
+    {
+      id: 'log-1',
+      type: 'check_in' as const,
+      title: 'Daily Check-in',
+      description: 'Morning health log completed',
+      timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
+    },
+    {
+      id: 'log-2',
+      type: 'safety_verified' as const,
+      title: 'Safety Verified',
+      description: 'Automated safety check passed',
+      timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000),
+    },
+    {
+      id: 'log-3',
+      type: 'movement_detected' as const,
+      title: 'Movement Detected',
+      description: 'Walking activity for 20 minutes',
+      timestamp: new Date(Date.now() - 6 * 60 * 60 * 1000),
+    },
+  ]);
 
   const addDocument = useCallback((doc: Omit<DigiLockerDocument, 'id' | 'uploadedAt'>) => {
     const newDoc: DigiLockerDocument = { ...doc, id: `doc-${Date.now()}`, uploadedAt: new Date() };

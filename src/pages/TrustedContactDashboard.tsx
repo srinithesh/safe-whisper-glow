@@ -7,8 +7,12 @@ import { StatusCard } from '@/components/StatusCard';
 import { VitalsCard } from '@/components/VitalsCard';
 import { ActivityTimeline, TimelineEvent } from '@/components/ActivityTimeline';
 import { RoleToggle } from '@/components/RoleToggle';
+import { LiveLocationCard } from '@/components/LiveLocationCard';
+import { EnhancedActivityLog } from '@/components/EnhancedActivityLog';
+import { EmergencyDocumentsCard } from '@/components/DigiLocker';
 import { useApp } from '@/contexts/AppContext';
 import { mockPregnantUser } from '@/data/mockData';
+import { ActivityLogEntry } from '@/types';
 import { 
   AlertTriangle, 
   CheckCircle,
@@ -19,6 +23,7 @@ const tabs = [
   { id: 'status', label: 'STATUS' },
   { id: 'vitals', label: 'VITALS' },
   { id: 'history', label: 'HISTORY' },
+  { id: 'docs', label: 'DOCS' },
 ];
 
 export const TrustedContactDashboard: React.FC = () => {
@@ -32,7 +37,41 @@ export const TrustedContactDashboard: React.FC = () => {
     reminders,
     setCurrentRole,
     emergencyHistory,
+    activityLog,
   } = useApp();
+
+  // Generate combined activity log
+  const combinedActivityLog: ActivityLogEntry[] = [
+    ...activityLog,
+    ...emergencyHistory.slice(0, 5).map((e): ActivityLogEntry => ({
+      id: e.id,
+      type: e.status === 'resolved' ? 'emergency_resolved' as const : 'emergency_triggered' as const,
+      title: e.status === 'resolved' ? 'Emergency Resolved' : 'Emergency Alert',
+      description: e.keyword ? `Voice detected: "${e.keyword}"` : `Trigger: ${e.triggerType}`,
+      timestamp: e.triggeredAt,
+    })),
+    ...reminders.filter(r => r.isCompleted && r.completedAt).slice(0, 5).map((r): ActivityLogEntry => ({
+      id: r.id,
+      type: 'reminder_confirmed' as const,
+      title: 'Reminder Completed',
+      description: `${r.title} confirmed`,
+      timestamp: r.completedAt!,
+    })),
+    {
+      id: 'loc-1',
+      type: 'location_updated' as const,
+      title: 'Location Update',
+      description: currentLocation.address || 'Home location',
+      timestamp: new Date(Date.now() - 15 * 60000),
+    },
+    {
+      id: 'safety-1',
+      type: 'safety_verified' as const,
+      title: 'Safety Check',
+      description: 'Routine automated check - Safe',
+      timestamp: new Date(Date.now() - 2 * 60 * 60000),
+    },
+  ].sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime()).slice(0, 15);
 
   // Generate mock timeline events
   const timelineEvents: TimelineEvent[] = [
@@ -136,14 +175,23 @@ export const TrustedContactDashboard: React.FC = () => {
         {/* Tab Content */}
         <div className="mt-4">
           {activeTab === 'status' && (
-            <StatusCard
-              location={currentLocation.address || '123 Maple Ave, Springfield'}
-              accuracy={5}
-              battery={84}
-              signalStrength="strong"
-              userName={mockPregnantUser.name.split(' ')[0]}
-              onCall={handleCallMother}
-            />
+            <div className="space-y-4">
+              <LiveLocationCard
+                location={currentLocation}
+                targetName={mockPregnantUser.name.split(' ')[0]}
+                showETA={true}
+                estimatedDistance={2.4}
+                estimatedTime={8}
+              />
+              <StatusCard
+                location={currentLocation.address || '123 Maple Ave, Springfield'}
+                accuracy={5}
+                battery={84}
+                signalStrength="strong"
+                userName={mockPregnantUser.name.split(' ')[0]}
+                onCall={handleCallMother}
+              />
+            </div>
           )}
 
           {activeTab === 'vitals' && (
@@ -158,7 +206,11 @@ export const TrustedContactDashboard: React.FC = () => {
           )}
 
           {activeTab === 'history' && (
-            <ActivityTimeline events={timelineEvents} />
+            <EnhancedActivityLog entries={combinedActivityLog} maxEntries={15} />
+          )}
+
+          {activeTab === 'docs' && (
+            <EmergencyDocumentsCard />
           )}
         </div>
       </div>

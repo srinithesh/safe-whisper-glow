@@ -5,7 +5,8 @@ import {
   Bell, 
   MapPin, 
   Users, 
-  Settings
+  Settings,
+  FolderOpen
 } from 'lucide-react';
 
 interface NavigationProps {
@@ -16,9 +17,9 @@ interface NavigationProps {
 const navItems = [
   { id: 'home', label: 'Home', icon: Home },
   { id: 'reminders', label: 'Reminders', icon: Bell },
+  { id: 'digilocker', label: 'DigiLocker', icon: FolderOpen },
   { id: 'location', label: 'Location', icon: MapPin },
   { id: 'contacts', label: 'Contacts', icon: Users },
-  { id: 'settings', label: 'Settings', icon: Settings },
 ];
 
 export const Navigation: React.FC<NavigationProps> = ({
