@@ -1,20 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { StatusBadge } from '@/components/StatusBadge';
-import { VoiceIndicator } from '@/components/VoiceIndicator';
-import { EmergencyButton } from '@/components/EmergencyButton';
 import { SafetyVerification } from '@/components/SafetyVerification';
 import { ReminderCard } from '@/components/ReminderCard';
-import { PregnancyTracker } from '@/components/PregnancyTracker';
 import { AIStatusCard } from '@/components/AIStatusCard';
 import { HealthCheckCard } from '@/components/HealthCheckCard';
 import { QuickActionCard } from '@/components/QuickActionCard';
 import { ContactMiniCard } from '@/components/ContactMiniCard';
 import { RoleToggle } from '@/components/RoleToggle';
 import { DailyCheckinDialog } from '@/components/DailyCheckinDialog';
+import { AISafetyPanel } from '@/components/AISafetyPanel';
+import { EscalationTimer } from '@/components/EscalationTimer';
+import { EnhancedActivityLog } from '@/components/EnhancedActivityLog';
+import { EmergencyShareConfirmation } from '@/components/EmergencyShareConfirmation';
+import { VoiceIndicator } from '@/components/VoiceIndicator';
 import { useApp } from '@/contexts/AppContext';
 import { mockPregnantUser } from '@/data/mockData';
+import { ActivityLogEntry } from '@/types';
 import { 
   Settings, 
   Info, 
@@ -22,7 +24,8 @@ import {
   MicOff, 
   Pill, 
   AlertCircle,
-  Clock
+  FolderOpen,
+  Shield
 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -43,12 +46,40 @@ export const PregnantDashboard: React.FC = () => {
     trustedContacts,
     setCurrentRole,
     emergencyHistory,
+    activityLog,
+    addActivityLog,
   } = useApp();
 
   const [checkinOpen, setCheckinOpen] = useState(false);
+  const [showShareConfirmation, setShowShareConfirmation] = useState(false);
   const upcomingReminder = reminders.find((r) => !r.isCompleted);
   const primaryContacts = trustedContacts.slice(0, 2);
-  const lastCheckIn = emergencyHistory.find(e => e.triggerType === 'voice' || e.triggerType === 'manual');
+
+  // Show confirmation when emergency is triggered
+  useEffect(() => {
+    if (emergencyStatus === 'emergency') {
+      setShowShareConfirmation(true);
+    }
+  }, [emergencyStatus]);
+
+  // Generate activity log from emergency history and reminders
+  const combinedActivityLog: ActivityLogEntry[] = [
+    ...activityLog,
+    ...emergencyHistory.slice(0, 5).map((e): ActivityLogEntry => ({
+      id: e.id,
+      type: e.status === 'resolved' ? 'emergency_resolved' as const : 'emergency_triggered' as const,
+      title: e.status === 'resolved' ? 'Emergency Resolved' : 'Emergency Triggered',
+      description: e.keyword ? `Detected: "${e.keyword}"` : `Trigger: ${e.triggerType}`,
+      timestamp: e.triggeredAt,
+    })),
+    ...reminders.filter(r => r.isCompleted && r.completedAt).slice(0, 5).map((r): ActivityLogEntry => ({
+      id: r.id,
+      type: 'reminder_confirmed' as const,
+      title: 'Reminder Confirmed',
+      description: `${r.title} - via ${r.completionMethod}`,
+      timestamp: r.completedAt!,
+    })),
+  ].sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime()).slice(0, 10);
 
   return (
     <div className="min-h-screen pb-24 animate-fade-in scrollbar-hide">
@@ -77,23 +108,23 @@ export const PregnantDashboard: React.FC = () => {
         <p className="text-muted-foreground">You are cared for and safe.</p>
       </div>
 
-      {/* Safety verification */}
+      {/* Escalation Timer - Shows during alert */}
       {emergencyStatus === 'alert' && timeRemaining && (
         <div className="px-4 mb-4">
-          <SafetyVerification 
-            timeRemaining={timeRemaining} 
-            onConfirmSafe={() => verifySafe('button')} 
+          <EscalationTimer
+            isActive={true}
+            totalTime={60}
+            currentTime={timeRemaining}
+            onConfirmSafe={() => verifySafe('button')}
+            onEscalate={() => window.location.href = 'tel:911'}
           />
         </div>
       )}
 
       {/* Main Content */}
       <div className="px-4 space-y-4">
-        {/* AI Status Card */}
-        <AIStatusCard 
-          isMonitoring={voiceEnabled && isListening}
-          status={emergencyStatus === 'monitoring' ? 'safe' : emergencyStatus}
-        />
+        {/* AI Safety Panel */}
+        <AISafetyPanel />
 
         {/* Health Check Card */}
         <HealthCheckCard 
@@ -101,7 +132,7 @@ export const PregnantDashboard: React.FC = () => {
           lastActivity="Based on activity & voice"
         />
 
-        {/* Active Reminder */}
+        {/* Active Reminder with Voice Confirmation */}
         {upcomingReminder && (
           <Card className="p-4 rounded-3xl shadow-card bg-warning/10 border-warning/20">
             <div className="flex items-center justify-between mb-3">
@@ -116,14 +147,28 @@ export const PregnantDashboard: React.FC = () => {
             <p className="text-sm mb-4">{upcomingReminder.description || `Did you take your ${upcomingReminder.title.toLowerCase()} today?`}</p>
             <div className="flex gap-3">
               <Button 
-                onClick={() => completeReminder(upcomingReminder.id, 'button')}
+                onClick={() => {
+                  completeReminder(upcomingReminder.id, 'button');
+                  addActivityLog({
+                    type: 'reminder_confirmed',
+                    title: 'Reminder Confirmed',
+                    description: `${upcomingReminder.title} - confirmed via button`,
+                  });
+                }}
                 className="flex-1 rounded-2xl bg-primary hover:bg-primary/90"
               >
                 Yes, I took them
               </Button>
               <Button 
                 variant="outline"
-                onClick={() => completeReminder(upcomingReminder.id, 'voice')}
+                onClick={() => {
+                  completeReminder(upcomingReminder.id, 'voice');
+                  addActivityLog({
+                    type: 'reminder_confirmed',
+                    title: 'Reminder Confirmed',
+                    description: `${upcomingReminder.title} - confirmed via voice`,
+                  });
+                }}
                 className="flex-1 rounded-2xl"
               >
                 <Mic className="w-4 h-4 mr-2" />
@@ -149,6 +194,30 @@ export const PregnantDashboard: React.FC = () => {
           />
         </div>
 
+        {/* DigiLocker Quick Access */}
+        <Card className="p-4 rounded-3xl shadow-card">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                <FolderOpen className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <h3 className="font-semibold">DigiLocker</h3>
+                <p className="text-sm text-muted-foreground">Secure emergency documents</p>
+              </div>
+            </div>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="rounded-2xl"
+              onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: 'digilocker' }))}
+            >
+              <Shield className="w-4 h-4 mr-1" />
+              Open
+            </Button>
+          </div>
+        </Card>
+
         {/* Trusted Contacts */}
         <div>
           <h3 className="text-sm font-medium text-muted-foreground mb-3 uppercase tracking-wide">
@@ -167,30 +236,8 @@ export const PregnantDashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Emergency History */}
-        <Card className="p-4 rounded-3xl shadow-card">
-          <h3 className="text-sm font-medium text-muted-foreground mb-3 uppercase tracking-wide">
-            Emergency History
-          </h3>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between py-2">
-              <div className="flex items-center gap-3">
-                <div className="w-2 h-2 rounded-full bg-muted" />
-                <span className="text-sm">Last check-in</span>
-              </div>
-              <span className="text-sm text-muted-foreground">
-                {lastCheckIn ? format(lastCheckIn.triggeredAt, "'Today,' h:mm a") : 'Today, 10:42 AM'}
-              </span>
-            </div>
-            <div className="flex items-center justify-between py-2">
-              <div className="flex items-center gap-3">
-                <AlertCircle className="w-4 h-4 text-warning" />
-                <span className="text-sm">Last alert</span>
-              </div>
-              <span className="text-sm text-primary">None</span>
-            </div>
-          </div>
-        </Card>
+        {/* Enhanced Activity Log */}
+        <EnhancedActivityLog entries={combinedActivityLog} />
 
         {/* Voice Monitor Toggle */}
         <Card className="p-4 rounded-3xl shadow-card">
@@ -228,6 +275,12 @@ export const PregnantDashboard: React.FC = () => {
         open={checkinOpen}
         onOpenChange={setCheckinOpen}
         onComplete={(id) => console.log('Completed:', id)}
+      />
+
+      {/* Emergency Share Confirmation */}
+      <EmergencyShareConfirmation
+        show={showShareConfirmation}
+        onDismiss={() => setShowShareConfirmation(false)}
       />
     </div>
   );
