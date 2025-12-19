@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
-import { UserRole, EmergencyStatus, Location, Reminder, TrustedContact, Hospital, EmergencyEvent } from '@/types';
+import { UserRole, EmergencyStatus, Location, Reminder, TrustedContact, Hospital, EmergencyEvent, DigiLockerDocument, DigiLockerAccess, ActivityLogEntry } from '@/types';
 import { mockPregnantUser, mockTrustedContacts, mockLocation, mockHospitals } from '@/data/mockData';
 import { useVoiceDetection } from '@/hooks/useVoiceDetection';
 import { useEmergencyState } from '@/hooks/useEmergencyState';
@@ -64,6 +64,19 @@ interface AppContextType {
     quietHoursEnd: string;
   };
   updateNotificationSetting: (key: string, value: boolean | string) => void;
+
+  // DigiLocker
+  digiLockerDocuments: DigiLockerDocument[];
+  addDocument: (doc: Omit<DigiLockerDocument, 'id' | 'uploadedAt'>) => void;
+  deleteDocument: (id: string) => void;
+  digiLockerAccess: DigiLockerAccess[];
+  updateDocumentAccess: (userId: string, accessType: DigiLockerAccess['accessType'], canView: boolean) => void;
+  emergencyAccessEnabled: boolean;
+  toggleEmergencyAccess: () => void;
+
+  // Activity Log
+  activityLog: ActivityLogEntry[];
+  addActivityLog: (entry: Omit<ActivityLogEntry, 'id' | 'timestamp'>) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -267,6 +280,41 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setNotificationSettings(prev => ({ ...prev, [key]: value }));
   }, []);
 
+  // DigiLocker state
+  const [digiLockerDocuments, setDigiLockerDocuments] = useState<DigiLockerDocument[]>([]);
+  const [digiLockerAccess, setDigiLockerAccess] = useState<DigiLockerAccess[]>([]);
+  const [emergencyAccessEnabled, setEmergencyAccessEnabled] = useState(false);
+  const [activityLog, setActivityLog] = useState<ActivityLogEntry[]>([]);
+
+  const addDocument = useCallback((doc: Omit<DigiLockerDocument, 'id' | 'uploadedAt'>) => {
+    const newDoc: DigiLockerDocument = { ...doc, id: `doc-${Date.now()}`, uploadedAt: new Date() };
+    setDigiLockerDocuments(prev => [...prev, newDoc]);
+    addActivityLog({ type: 'documents_shared', title: 'Document Added', description: `Added ${doc.name}` });
+  }, []);
+
+  const deleteDocument = useCallback((id: string) => {
+    setDigiLockerDocuments(prev => prev.filter(d => d.id !== id));
+  }, []);
+
+  const updateDocumentAccess = useCallback((userId: string, accessType: DigiLockerAccess['accessType'], canView: boolean) => {
+    setDigiLockerAccess(prev => {
+      const existing = prev.find(a => a.userId === userId);
+      if (existing) {
+        return prev.map(a => a.userId === userId ? { ...a, canView } : a);
+      }
+      return [...prev, { userId, accessType, canView, grantedAt: new Date() }];
+    });
+  }, []);
+
+  const toggleEmergencyAccess = useCallback(() => {
+    setEmergencyAccessEnabled(prev => !prev);
+  }, []);
+
+  const addActivityLog = useCallback((entry: Omit<ActivityLogEntry, 'id' | 'timestamp'>) => {
+    const newEntry: ActivityLogEntry = { ...entry, id: `log-${Date.now()}`, timestamp: new Date() };
+    setActivityLog(prev => [newEntry, ...prev].slice(0, 100));
+  }, []);
+
   const value: AppContextType = {
     currentRole,
     setCurrentRole,
@@ -301,6 +349,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     voiceEnabled,
     notificationSettings,
     updateNotificationSetting,
+    digiLockerDocuments,
+    addDocument,
+    deleteDocument,
+    digiLockerAccess,
+    updateDocumentAccess,
+    emergencyAccessEnabled,
+    toggleEmergencyAccess,
+    activityLog,
+    addActivityLog,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
