@@ -86,3 +86,55 @@ export interface Alert {
   isRead: boolean;
   actionRequired?: boolean;
 }
+
+// DigiLocker types
+export type DocumentType = 
+  | 'government_id' 
+  | 'pregnancy_report' 
+  | 'scan_report' 
+  | 'blood_group' 
+  | 'prescription' 
+  | 'insurance' 
+  | 'medical_notes';
+
+export type DocumentAccessLevel = 'private' | 'trusted_contacts' | 'emergency_only';
+
+export interface DigiLockerDocument {
+  id: string;
+  type: DocumentType;
+  name: string;
+  fileName: string;
+  fileSize: number;
+  uploadedAt: Date;
+  accessLevel: DocumentAccessLevel;
+  thumbnailUrl?: string;
+  fileUrl?: string;
+}
+
+export interface DigiLockerAccess {
+  userId: string;
+  accessType: 'husband' | 'relative' | 'emergency_responder';
+  canView: boolean;
+  grantedAt: Date;
+}
+
+// Activity Log types
+export type ActivityType = 
+  | 'reminder_confirmed'
+  | 'safety_verified'
+  | 'emergency_triggered'
+  | 'emergency_resolved'
+  | 'documents_shared'
+  | 'location_updated'
+  | 'voice_detected'
+  | 'check_in'
+  | 'movement_detected';
+
+export interface ActivityLogEntry {
+  id: string;
+  type: ActivityType;
+  title: string;
+  description: string;
+  timestamp: Date;
+  metadata?: Record<string, unknown>;
+}
